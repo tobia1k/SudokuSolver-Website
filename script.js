@@ -50,6 +50,12 @@ function setGame() {
     clear.addEventListener("click", selectNumber);
     clear.classList.add("number");
     document.getElementById("delete").appendChild(clear);
+
+    let solve = document.createElement("div");
+    solve.innerText = "SOLVE";
+    solve.addEventListener("click", solveBoard);
+    solve.classList.add("number");
+    solve.getElementById("solvebtn").appendChild(solve);
 }
 
 function selectNumber() {
@@ -74,5 +80,13 @@ function selectTile() {
 function clearTile() {
     if (tileSelected) {
         tileSelected.innerText = "";
+    }
+}
+
+function solveBoard() {
+    for (let r = 0; r < 9; r++) {
+        for (let c=0; c < 9; c++) {
+
+        }
     }
 }

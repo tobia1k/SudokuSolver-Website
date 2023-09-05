@@ -1,92 +1,120 @@
-var numSelected = null;
-var tileSelected = null;
+document.addEventListener('DOMContentLoaded', function () {
+    const gridSize = 9;
+    const solveButton = document.getElementById("solve-btn");
+    solveButton.addEventListener('click', solveSudoku);
 
-
-// index -> { row, col }
-function i2rc(index) {
-    return { row: Math.floor(index / 9), col: index % 9};
-}
-
-// {row, col } -> index
-function rc2i(row, col) {
-    return row * 9 + col;
-}
-
-window.onload = function() {
-    setGame();
-}
-
-function setGame() {
-    // Digits 1-9
-    for (let i = 1; i <= 9; i++) {
-        //<div id="1" class="number">1</div>
-        let number = document.createElement("div");
-        number.id = i;
-        number.innerText = i;
-        number.addEventListener("click", selectNumber);
-        number.classList.add("number");
-        document.getElementById("digits").appendChild(number);
+    const sudokuGrid = document.getElementById("sudoku-grid");
+    // Create the sudoku grid and input cells
+    for (let row = 0; row < gridSize; row++) {
+        const newRow = document.createElement("tr");
+        for (let col = 0; col < gridSize; col++) {
+            const cell = document.createElement("td");
+            const input = document.createElement("input");
+            input.type = "number";
+            input.className = "cell";
+            input.id = `cell-${row}-${col}`;
+            cell.appendChild(input);
+            newRow.appendChild(cell);
+        }
+        sudokuGrid.appendChild(newRow);
     }
+});
 
-    // Board 9x9
-    for (let r = 0; r < 9; r++) {
-        for (let c=0; c < 9; c++) {
-            let tile = document.createElement("div");
-            tile.id = r.toString() + "-" + c.toString();
-            //tile.innerText = board[r][c];
-            if (r == 2 || r == 5) {
-                tile.classList.add("horizontal-line");
-            }
-            if (c == 2 || c == 5) {
-                tile.classList.add("vertical-line");
-            }
-            tile.addEventListener("click", selectTile);
-            tile.classList.add("tile");
-            document.getElementById("board").append(tile);
+async function solveSudoku() {
+    const gridSize = 9;
+    const sudokuArray = [];
+
+    // Fill the sudokuArray with input values from the grid
+    for (let row = 0; row < gridSize; row++) {
+        sudokuArray[row] = [];
+        for (let col = 0; col < gridSize; col++) {
+            const cellId = `cell-${row}-${col}`;
+            const cellValue = document.getElementById(cellId).value;
+            sudokuArray[row][col] = cellValue !== "" ? parseInt (cellValue) : 0;
         }
     }
-    let clear = document.createElement("div");
-    clear.innerText = "CLR";
-    clear.addEventListener("click", selectNumber);
-    clear.classList.add("number");
-    document.getElementById("delete").appendChild(clear);
 
-    let solve = document.createElement("div");
-    solve.innerText = "SOLVE";
-    solve.addEventListener("click", solveBoard);
-    solve.classList.add("number");
-    solve.getElementById("solvebtn").appendChild(solve);
-}
+    // Identify user-input cells and mark them
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            const cellId = `cell-${row}-${col}`;
+            const cell = document.getElementById(cellId);
 
-function selectNumber() {
-    if (numSelected != null) {
-        numSelected.classList.remove("number-selected");
-    }
-    numSelected = this;
-    numSelected.classList.add("number-selected");
-}
-
-function selectTile() {
-    if (numSelected) {
-        this.innerText = numSelected.id;
-    }
-    else {
-        this.innerText = "";
-    }
-    tileSelected = this;
-    tileSelected.classList.add("tile-selected");
-}
-
-function clearTile() {
-    if (tileSelected) {
-        tileSelected.innerText = "";
-    }
-}
-
-function solveBoard() {
-    for (let r = 0; r < 9; r++) {
-        for (let c=0; c < 9; c++) {
-
+            if (sudokuArray[row][col] !== 0) {
+                cell.classList.add("user-input");
+            }
         }
     }
+
+    // Solve the sudoku and display the solution
+    if (solveSudokuHelper(sudokuArray)) {
+        for (let row = 0; row < gridSize; row++) {
+            for (let col = 0; col < gridSize; col++) {
+                const cellId = `cell-${row}-${col}`;
+                const cell = document.getElementById(cellId);
+                
+                // Fill in solved values and apply animation
+                if (!cell.classList.contains("user-input")){
+                    cell.value = sudokuArray[row][col];
+                    cell.classList.add("solved");
+                    await sleep(20); // Add a delay for visualization
+                }
+            }
+        }
+    } else {
+        alert("No solution exists for the given Sudoku puzzle");
+    }
+}
+
+function solveSudokuHelper(board) {
+    const gridSize = 9;
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            if (board[row][col] === 0) {
+                for (let num = 1; num <= 9; num++) {
+                    if (isValidMove(board, row, col, num)) {
+                        board[row][col] = num;
+
+                        // Recursively attempt to sorve the Sudoku
+                        if (solveSudokuHelper(board)) {
+                            return true; // Puzzle solved
+                        }
+
+                        board[row][col] = 0; // Backtrack
+                    }
+                }
+                return false; // No valid number found
+            }
+        }
+    }
+    return true; // All cells filled
+}
+
+function isValidMove(board, row, col, num) {
+    const gridSize = 9;
+    
+    // Check row and column for conflicts
+    for (let i = 0; i < gridSize; i++) {
+        if (board[row][i] === num || board[i][col] === num) {
+            return false; // Conflict found
+        }
+    }
+
+    // Check the 3x3 subgrid for conflicts
+    const startRow = Math.floor(row / 3) * 3;
+    const startCol = Math.floor(col / 3) * 3;
+
+    for (let i = startRow; i < startRow + 3; i++) {
+        for (let j = startCol; j < startCol + 3; j++) {
+            if (board[i][j] === num) {
+                return false; // Conflict found
+            }
+        }
+    }
+
+    return true; // No conflicts found
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
